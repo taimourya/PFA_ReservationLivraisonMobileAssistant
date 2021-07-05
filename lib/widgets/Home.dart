@@ -6,6 +6,11 @@ import 'package:assistant/widgets/ReclamationTrouver.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:assistant/widgets/DrawerMenu.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'package:assistant/API/Host.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 class Home extends StatefulWidget {
 
@@ -21,12 +26,14 @@ class _HomeState extends State<Home> {
 
   Timer? timer;
 
-  int cptSimulationRecherche = 0;
+  late int userId;
+
 
   @override
   void initState() {
     super.initState();
-    timer = Timer.periodic(Duration(seconds: 1), (Timer t) => checkCommande());
+    getSharedUserId();
+    timer = Timer.periodic(Duration(seconds: 1), (Timer t) => checkReclamation());
   }
   @override
   void dispose() {
@@ -34,29 +41,50 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  void checkCommande() {
-    if(disponnible) {
-      if(cptSimulationRecherche >= 5) {
-        timer?.cancel();
-        setState(() {
-          disponnible = false;
-          cptSimulationRecherche = 0;
-        });
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => ReclamationTrouver()),
-        );
-      }
-      else {
-
-        print("recherche ...");
-        setState(() {
-          cptSimulationRecherche++;
-        });
-      }
-    }
+  Future<void> getSharedUserId() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final id = prefs.getInt('user_id');
+    print(id);
+    setState(() {
+      userId = id == null? 0 : id;
+    });
   }
 
+  void checkReclamation() {
+    if(disponnible) {
+      var url = Uri.parse(
+          "http://${Host.url}:8080/reclamation/check?assistant_id=$userId"
+      );
+
+      http.get(url).then((response) {
+        print(response.body);
+        dynamic data = json.decode(response.body);
+        if(response.statusCode == 200) {
+          print("id liv : ${data['id']}");
+          setState(() {
+            disponnible = false;
+            timer?.cancel();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ReclamationTrouver(data['id'])),
+            );
+          });
+        }
+        else {
+          if(data['message'] == "vous avez deja une reclamation en cours de traitment")
+          {
+            ScaffoldMessenger.of(context)
+                .showSnackBar(SnackBar(content: Text(data['message'])));
+            setState(() {
+              disponnible = false;
+            });
+          }
+        }
+      }).catchError((err) {
+        print(err);
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,51 +95,51 @@ class _HomeState extends State<Home> {
       drawer: DrawerMenu(),
       backgroundColor: disponnible? Colors.red: Colors.green,
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            disponnible?
-            RawMaterialButton(
-              onPressed: () {
-                setState(() {
-                  disponnible = false;
-                });
-              },
-              elevation: 2.0,
-              fillColor: Colors.green,
-              child: Icon(
-                Icons.pause,
-                size: 35.0,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              disponnible?
+              RawMaterialButton(
+                onPressed: () {
+                  setState(() {
+                    disponnible = false;
+                  });
+                },
+                elevation: 2.0,
+                fillColor: Colors.green,
+                child: Icon(
+                  Icons.pause,
+                  size: 35.0,
+                ),
+                padding: EdgeInsets.all(15.0),
+                shape: CircleBorder(),
+              )
+                  :
+              RawMaterialButton(
+                onPressed: () {
+                  setState(() {
+                    disponnible = true;
+                  });
+
+                },
+                elevation: 2.0,
+                fillColor: Colors.red,
+                child: Icon(
+                  Icons.not_started,
+                  size: 35.0,
+                ),
+                padding: EdgeInsets.all(15.0),
+                shape: CircleBorder(),
               ),
-              padding: EdgeInsets.all(15.0),
-              shape: CircleBorder(),
-            )
-                :
-            RawMaterialButton(
-              onPressed: () {
-                setState(() {
-                  disponnible = true;
-                });
 
-              },
-              elevation: 2.0,
-              fillColor: Colors.red,
-              child: Icon(
-                Icons.not_started,
-                size: 35.0,
+              SizedBox(height: 20,),
+              Text(
+                disponnible? "En cours Recherche" : "Non disponible",
+                style: Theme.of(context).textTheme.headline5,
               ),
-              padding: EdgeInsets.all(15.0),
-              shape: CircleBorder(),
-            ),
 
-            SizedBox(height: 20,),
-            Text(
-              disponnible? "En cours Recherche" : "Non disponible",
-              style: Theme.of(context).textTheme.headline5,
-            ),
-
-          ],
-        )
+            ],
+          )
 
       ),
     );
