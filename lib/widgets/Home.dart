@@ -53,7 +53,7 @@ class _HomeState extends State<Home> {
   void checkReclamation() {
     if(disponnible) {
       var url = Uri.parse(
-          "http://${Host.url}:8080/reclamation/check?assistant_id=$userId"
+          "${Host.url}/reclamation/check?assistant_id=$userId"
       );
 
       http.get(url).then((response) {

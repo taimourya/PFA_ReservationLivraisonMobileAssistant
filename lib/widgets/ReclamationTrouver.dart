@@ -45,7 +45,7 @@ class _ReclamationTrouverState extends State<ReclamationTrouver> {
 
   void _accepterLivraison() {
     var url = Uri.parse(
-        "http://${Host.url}:8080/reclamation/accept"
+        "${Host.url}/reclamation/accept"
             "?assistant_id=$userId"
             "&reclamation_id=${widget.reclamationId}"
     );

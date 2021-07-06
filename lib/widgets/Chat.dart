@@ -69,7 +69,7 @@ class _StateChat extends State<Chat>{
         user: ChatUser(
           name: "Taimourya yahya",
           uid: "1",
-          avatar: "https://www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
+          avatar: "www.wrappixel.com/ampleadmin/assets/images/users/4.jpg",
         ),
         messages: chatMessages,
         onSend: (ChatMessage ) {

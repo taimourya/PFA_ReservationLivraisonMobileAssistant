@@ -9,9 +9,7 @@ import 'package:dash_chat/dash_chat.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:assistant/widgets/DrawerMenu.dart';
-import 'package:assistant/widgets/Chat.dart';
 import 'package:http/http.dart' as http;
-import 'package:intl/intl.dart';
 import 'package:assistant/API/Host.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -63,7 +61,7 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
 
   void _getReclamationEnCours() {
     var url = Uri.parse(
-        "http://${Host.url}:8080/reclamation/enCours?assistant_id=$userId"
+        "${Host.url}/reclamation/enCours?assistant_id=$userId"
     );
 
     http.get(url).then((response) {
@@ -73,11 +71,13 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
             data = json.decode(response.body);
         }
         else {
-          timer?.cancel();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => Home()),
-          );
+          setState(() {
+            timer?.cancel();
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => Home()),
+            );
+          });
         }
       });
     }).catchError((err) {
@@ -86,7 +86,7 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
   }
 
   void _getProfil() {
-    var url = Uri.parse("http://${Host.url}:8080/user?id=$userId");
+    var url = Uri.parse("${Host.url}/user?id=$userId");
     http.get(url).then((response) {
       print(response.body);
       setState(() {
@@ -100,7 +100,7 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
   void _getMessages() {
     if(data == null) return;
     var url = Uri.parse(
-        "http://${Host.url}:8080/conversation/messages?conversation_id=${data['conversation']['id']}"
+        "${Host.url}/conversation/messages?conversation_id=${data['conversation']['id']}"
     );
     http.get(url).then((response) {
       print(response.body);
@@ -129,7 +129,7 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
 
   void _sendMesage(String message) {
     http.post(
-      Uri.parse('http://${Host.url}:8080/conversation/message/send'),
+      Uri.parse('${Host.url}/conversation/message/send'),
       headers: <String, String>{
         'Content-Type': 'application/json; charset=UTF-8',
       },
@@ -160,27 +160,70 @@ class _StateReclamationEnCours extends State<ReclamationEnCours>{
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.green,
-        title: Text("Chat"),
+        title: Text(
+            data != null?
+            "${data['user']['firstname']} ${data['user']['lastname']}"
+            :
+            ''
+        ),
         actions: [
+          TextButton(
+            child: Text("Transferer a un expert", style: TextStyle(color: Colors.cyan),),
+            onPressed: () {
+              var url = Uri.parse("${Host.url}/reclamation/transfer/expert?assistant_id=$userId");
+              http.get(url)
+                  .then((response) {
+                print(response.body);
+                if(response.statusCode == 200) {
+                  setState(() {
+                    timer?.cancel();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Home()),
+                    );
+                  });
+                }
+              }).catchError((err) {
+                print(err);
+              });
+            },
+          ),
           TextButton(
             child: Text("Transferer", style: TextStyle(color: Colors.cyan),),
             onPressed: () {
-
+              var url = Uri.parse("${Host.url}/reclamation/transfer?assistant_id=$userId");
+              http.get(url)
+                  .then((response) {
+                print(response.body);
+                if(response.statusCode == 200) {
+                  setState(() {
+                    timer?.cancel();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Home()),
+                    );
+                  });
+                }
+              }).catchError((err) {
+                print(err);
+              });
             },
           ),
           TextButton(
             child: Text("Resolu", style: TextStyle(color: Colors.cyan),),
             onPressed: () {
-              var url = Uri.parse("http://${Host.url}:8080/reclamation/resolved?assistant_id=$userId");
+              var url = Uri.parse("${Host.url}/reclamation/resolved?assistant_id=$userId");
               http.get(url)
                   .then((response) {
                 print(response.body);
                 if(response.statusCode == 200) {
-                  timer?.cancel();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => Home()),
-                  );
+                  setState(() {
+                    timer?.cancel();
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => Home()),
+                    );
+                  });
                 }
               }).catchError((err) {
                 print(err);
